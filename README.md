@@ -1,5 +1,7 @@
 # Add PROXY protocol support to caddy
 
+[![Build Status](https://travis-ci.org/mastercactapus/caddy-proxyprotocol.svg?branch=master)](https://travis-ci.org/mastercactapus/caddy-proxyprotocol)
+
 ## Syntax
 
 ```
