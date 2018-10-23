@@ -21,31 +21,25 @@ func init() {
 }
 
 func setup(c *caddy.Controller) error {
-	var cfg Config
-	var configs []Config
-	var err error
-
-	cfg, err = parse(c)
+	configs, err := parseConfig(c)
 	if err != nil {
 		return err
 	}
-	configs = append(configs, cfg)
 
-	if configs != nil {
+	if len(configs) > 0 {
 		httpserver.GetConfig(c).AddListenerMiddleware(Configs(configs).NewListener)
 	}
 
 	return nil
 }
 
-func parse(c *caddy.Controller) (Config, error) {
-	var cfg Config
-	var err error
+func parseConfig(c *caddy.Controller) (cfgs []Config, err error) {
 	for c.Next() {
-		for _, arg := range c.RemainingArgs(){
+		var cfg Config
+		for _, arg := range c.RemainingArgs() {
 			_, n, err := net.ParseCIDR(arg)
 			if err != nil {
-				return cfg, err
+				return nil, err
 			}
 			cfg.Subnets = append(cfg.Subnets, n)
 		}
@@ -54,16 +48,23 @@ func parse(c *caddy.Controller) (Config, error) {
 			switch c.Val() {
 			case "timeout":
 				if !c.NextArg() {
-					return cfg, c.ArgErr()
+					return nil, c.ArgErr()
 				}
 				cfg.Timeout, err = time.ParseDuration(c.Val())
 				if err != nil {
-					return cfg, err
+					return nil, err
 				}
 			default:
-				return cfg, c.ArgErr()
+				return nil, c.ArgErr()
 			}
 		}
+		if len(cfg.Subnets) > 0 {
+			continue
+		}
+		if c.NextBlock() {
+			return nil, c.ArgErr()
+		}
+		cfgs = append(cfgs, cfg)
 	}
-	return cfg, nil
+	return cfgs, nil
 }
