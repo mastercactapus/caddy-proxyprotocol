@@ -58,7 +58,7 @@ func parseConfig(c *caddy.Controller) (cfgs []Config, err error) {
 				return nil, c.ArgErr()
 			}
 		}
-		if len(cfg.Subnets) > 0 {
+		if len(cfg.Subnets) == 0 {
 			continue
 		}
 		if c.NextBlock() {
