@@ -80,5 +80,17 @@ func TestParseConfig(t *testing.T) {
 		expectedCfg{subnets: []string{"0.0.0.0/0"}, timeout: 25 * time.Minute},
 		expectedCfg{subnets: []string{"1234:300::/24"}, timeout: 30 * time.Minute},
 	)
-
+	check(
+		"multi-site",
+		`example.com {
+			proxyprotocol 0.0.0.0/0
+		}
+		foo.com {
+			proxyprotocol 1234:321::1/24 {
+				timeout 30m
+			}
+		}`,
+		expectedCfg{subnets: []string{"0.0.0.0/0"}},
+		expectedCfg{subnets: []string{"1234:300::/24"}, timeout: 30 * time.Minute},
+	)
 }

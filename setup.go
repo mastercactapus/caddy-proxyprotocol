@@ -35,6 +35,10 @@ func setup(c *caddy.Controller) error {
 
 func parseConfig(c *caddy.Controller) (cfgs []Config, err error) {
 	for c.Next() {
+		if c.Val() != "proxyprotocol" {
+			continue
+		}
+
 		var cfg Config
 		for _, arg := range c.RemainingArgs() {
 			_, n, err := net.ParseCIDR(arg)
