@@ -10,12 +10,12 @@ import (
 
 func TestParseConfig(t *testing.T) {
 
-	type expectedCfg struct {
-		subnets []string
+	type exp struct {
+		subnet  string
 		timeout time.Duration
 	}
 
-	check := func(name, cfg string, expected ...expectedCfg) {
+	check := func(name, cfg string, expected ...exp) {
 		t.Run(name, func(t *testing.T) {
 			cfgs, err := parseConfig(caddy.NewTestController("http", cfg))
 			assert.NoError(t, err)
@@ -25,10 +25,7 @@ func TestParseConfig(t *testing.T) {
 					break
 				}
 				cfg := cfgs[i]
-				assert.Len(t, cfg.Subnets, len(exp.subnets))
-				for i, sub := range exp.subnets {
-					assert.Equal(t, sub, cfg.Subnets[i].String(), "Subnet[%d]", i)
-				}
+				assert.Equal(t, exp.subnet, cfg.Subnet.String(), "Subnet")
 				assert.Equal(t, exp.timeout.String(), cfg.Timeout.String(), "Timeout")
 			}
 		})
@@ -41,33 +38,36 @@ func TestParseConfig(t *testing.T) {
 	check(
 		"single-subnet",
 		`proxyprotocol 127.0.0.1/32`,
-		expectedCfg{subnets: []string{"127.0.0.1/32"}},
+		exp{subnet: "127.0.0.1/32"},
 	)
 	check(
 		"multi-subnet",
 		`proxyprotocol 0.0.0.0/0 ::/0`,
-		expectedCfg{subnets: []string{"0.0.0.0/0", "::/0"}},
+		exp{subnet: "0.0.0.0/0"},
+		exp{subnet: "::/0"},
 	)
 	check(
 		"duplicate",
 		`proxyprotocol 0.0.0.0/0
 		proxyprotocol ::/0`,
-		expectedCfg{subnets: []string{"0.0.0.0/0"}},
-		expectedCfg{subnets: []string{"::/0"}},
+		exp{subnet: "0.0.0.0/0"},
+		exp{subnet: "::/0"},
 	)
 	check(
 		"block-single",
 		`proxyprotocol 0.0.0.0/0 {
 			timeout 2s
 		}`,
-		expectedCfg{subnets: []string{"0.0.0.0/0"}, timeout: 2 * time.Second},
+		exp{subnet: "0.0.0.0/0", timeout: 2 * time.Second},
 	)
 	check(
 		"block-multi",
 		`proxyprotocol 0.0.0.0/0 1234:321::1/24 {
 			timeout 25m
 		}`,
-		expectedCfg{subnets: []string{"0.0.0.0/0", "1234:300::/24"}, timeout: 25 * time.Minute},
+		exp{subnet: "0.0.0.0/0", timeout: 25 * time.Minute},
+		// normalized subnet str
+		exp{subnet: "1234:300::/24", timeout: 25 * time.Minute},
 	)
 	check(
 		"block-duplicate",
@@ -77,8 +77,8 @@ func TestParseConfig(t *testing.T) {
 		proxyprotocol 1234:321::1/24 {
 			timeout 30m
 		}`,
-		expectedCfg{subnets: []string{"0.0.0.0/0"}, timeout: 25 * time.Minute},
-		expectedCfg{subnets: []string{"1234:300::/24"}, timeout: 30 * time.Minute},
+		exp{subnet: "0.0.0.0/0", timeout: 25 * time.Minute},
+		exp{subnet: "1234:300::/24", timeout: 30 * time.Minute},
 	)
 	check(
 		"multi-site",
@@ -90,7 +90,7 @@ func TestParseConfig(t *testing.T) {
 				timeout 30m
 			}
 		}`,
-		expectedCfg{subnets: []string{"0.0.0.0/0"}},
-		expectedCfg{subnets: []string{"1234:300::/24"}, timeout: 30 * time.Minute},
+		exp{subnet: "0.0.0.0/0"},
+		exp{subnet: "1234:300::/24", timeout: 30 * time.Minute},
 	)
 }

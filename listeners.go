@@ -1,43 +1,29 @@
 package proxyprotocol
 
 import (
-	"net"
+	"os"
 
-	proxyproto "github.com/armon/go-proxyproto"
+	pp "github.com/mastercactapus/proxyprotocol"
 	"github.com/mholt/caddy"
 )
 
-type Configs []Config
-
+// Listener adds PROXY protocol support to a caddy.Listener.
 type Listener struct {
-	caddy.Listener
-	Configs []Config
+	*pp.Listener
+	cl caddy.Listener
 }
 
-func (c Configs) NewListener(l caddy.Listener) caddy.Listener {
-	ln := &Listener{
-		Listener: l,
-		Configs:  []Config(c),
-	}
-	return ln
-}
+// File implements the caddy.Listener interface.
+func (l *Listener) File() (*os.File, error) { return l.cl.File() }
 
-func (l *Listener) Accept() (net.Conn, error) {
-	c, err := l.Listener.Accept()
-	if err != nil {
-		return nil, err
+func (r ppRules) NewListener(l caddy.Listener) caddy.Listener {
+	if ppL, ok := l.(*Listener); ok {
+		// merge existing
+		ppL.AddRules(r)
+		return l
 	}
-
-	addr, ok := c.RemoteAddr().(*net.TCPAddr)
-	if !ok {
-		return c, nil
+	return &Listener{
+		Listener: pp.NewListener(l, r),
+		cl:       l,
 	}
-	for _, cfg := range l.Configs {
-		for _, s := range cfg.Subnets {
-			if s.Contains(addr.IP) {
-				return proxyproto.NewConn(c, cfg.Timeout), nil
-			}
-		}
-	}
-	return c, nil
 }
