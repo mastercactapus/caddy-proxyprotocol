@@ -33,25 +33,39 @@ func TestParseConfig(t *testing.T) {
 
 	check(
 		"empty",
-		"",
+		``,
+	)
+	check(
+		"default",
+		`proxyprotocol`,
+		exp{subnet: "0.0.0.0/0", timeout: 5 * time.Second},
+		exp{subnet: "::/0", timeout: 5 * time.Second},
+	)
+	check(
+		"default-options",
+		`proxyprotocol {
+			timeout 1s
+		}`,
+		exp{subnet: "0.0.0.0/0", timeout: time.Second},
+		exp{subnet: "::/0", timeout: time.Second},
 	)
 	check(
 		"single-subnet",
 		`proxyprotocol 127.0.0.1/32`,
-		exp{subnet: "127.0.0.1/32"},
+		exp{subnet: "127.0.0.1/32", timeout: 5 * time.Second},
 	)
 	check(
 		"multi-subnet",
 		`proxyprotocol 0.0.0.0/0 ::/0`,
-		exp{subnet: "0.0.0.0/0"},
-		exp{subnet: "::/0"},
+		exp{subnet: "0.0.0.0/0", timeout: 5 * time.Second},
+		exp{subnet: "::/0", timeout: 5 * time.Second},
 	)
 	check(
 		"duplicate",
 		`proxyprotocol 0.0.0.0/0
 		proxyprotocol ::/0`,
-		exp{subnet: "0.0.0.0/0"},
-		exp{subnet: "::/0"},
+		exp{subnet: "0.0.0.0/0", timeout: 5 * time.Second},
+		exp{subnet: "::/0", timeout: 5 * time.Second},
 	)
 	check(
 		"block-single",
@@ -90,7 +104,7 @@ func TestParseConfig(t *testing.T) {
 				timeout 30m
 			}
 		}`,
-		exp{subnet: "0.0.0.0/0"},
+		exp{subnet: "0.0.0.0/0", timeout: 5 * time.Second},
 		exp{subnet: "1234:300::/24", timeout: 30 * time.Minute},
 	)
 }

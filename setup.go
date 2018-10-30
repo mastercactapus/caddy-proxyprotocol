@@ -38,7 +38,7 @@ func parseConfig(c *caddy.Controller) (cfgs []pp.Rule, err error) {
 		}
 
 		var subnets []*net.IPNet
-		var t time.Duration
+		t := 5 * time.Second
 		for _, arg := range c.RemainingArgs() {
 			_, n, err := net.ParseCIDR(arg)
 			if err != nil {
@@ -53,20 +53,33 @@ func parseConfig(c *caddy.Controller) (cfgs []pp.Rule, err error) {
 				if !c.NextArg() {
 					return nil, c.ArgErr()
 				}
+				if c.Val() == "none" {
+					t = 0
+					break
+				}
 				t, err = time.ParseDuration(c.Val())
 				if err != nil {
 					return nil, err
 				}
+				if t < 0 {
+					return nil, c.ArgErr()
+				}
+
 			default:
 				return nil, c.ArgErr()
 			}
 		}
+
 		if len(subnets) == 0 {
-			continue
+			subnets = append(subnets,
+				&net.IPNet{Mask: make([]byte, 4), IP: make([]byte, 4)},
+				&net.IPNet{Mask: make([]byte, 16), IP: make([]byte, 16)},
+			)
 		}
 		if c.NextBlock() {
 			return nil, c.ArgErr()
 		}
+
 		for _, n := range subnets {
 			cfgs = append(cfgs, pp.Rule{Subnet: n, Timeout: t})
 		}
