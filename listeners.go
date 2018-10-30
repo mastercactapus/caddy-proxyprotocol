@@ -19,11 +19,17 @@ func (l *Listener) File() (*os.File, error) { return l.cl.File() }
 func (r ppRules) NewListener(l caddy.Listener) caddy.Listener {
 	if ppL, ok := l.(*Listener); ok {
 		// merge existing
-		ppL.AddRules(r)
+		f := ppL.Filter()
+		f = append(f, r...)
+		ppL.SetFilter(f)
 		return l
 	}
+
+	ppL := pp.NewListener(l, 0)
+	ppL.SetFilter(r)
+
 	return &Listener{
-		Listener: pp.NewListener(l, r),
+		Listener: ppL,
 		cl:       l,
 	}
 }
