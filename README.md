@@ -18,8 +18,8 @@ The default timeout is `5s`. Set to `0` or `none` to disable the timeout.
 ## Examples
 
 ```
-# Enable from any source (probably don't want this in prod)
-proxyprotocol 0.0.0.0/0 ::/0
+# Enable from any source 
+proxyprotocol
 
 # Enable from local subnet and fixed IP
 proxyprotocol 10.22.0.0/16 10.23.0.1/32
