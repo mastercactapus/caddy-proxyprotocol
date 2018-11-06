@@ -4,14 +4,12 @@ import (
 	"net"
 	"time"
 
+	pp "github.com/mastercactapus/proxyprotocol"
 	"github.com/mholt/caddy"
 	"github.com/mholt/caddy/caddyhttp/httpserver"
 )
 
-type Config struct {
-	Timeout time.Duration
-	Subnets []*net.IPNet
-}
+type ppRules []pp.Rule
 
 func init() {
 	caddy.RegisterPlugin("proxyprotocol", caddy.Plugin{
@@ -21,44 +19,70 @@ func init() {
 }
 
 func setup(c *caddy.Controller) error {
-	var configs []Config
-	var err error
+	rules, err := parseConfig(c)
+	if err != nil {
+		return err
+	}
 
+	if len(rules) > 0 {
+		httpserver.GetConfig(c).AddListenerMiddleware(ppRules(rules).NewListener)
+	}
+
+	return nil
+}
+
+func parseConfig(c *caddy.Controller) (cfgs []pp.Rule, err error) {
 	for c.Next() {
-		var cfg Config
-		for c.NextArg() {
-			_, n, err := net.ParseCIDR(c.Val())
+		if c.Val() != "proxyprotocol" {
+			continue
+		}
+
+		var subnets []*net.IPNet
+		t := 5 * time.Second
+		for _, arg := range c.RemainingArgs() {
+			_, n, err := net.ParseCIDR(arg)
 			if err != nil {
-				return err
+				return nil, err
 			}
-			cfg.Subnets = append(cfg.Subnets, n)
+			subnets = append(subnets, n)
 		}
 
 		if c.NextBlock() {
 			switch c.Val() {
 			case "timeout":
 				if !c.NextArg() {
-					return c.ArgErr()
+					return nil, c.ArgErr()
 				}
-				cfg.Timeout, err = time.ParseDuration(c.Val())
+				if c.Val() == "none" {
+					t = 0
+					break
+				}
+				t, err = time.ParseDuration(c.Val())
 				if err != nil {
-					return err
+					return nil, err
 				}
+				if t < 0 {
+					return nil, c.ArgErr()
+				}
+
 			default:
-				return c.ArgErr()
+				return nil, c.ArgErr()
 			}
 		}
-		if cfg.Subnets == nil {
-			continue
-		}
-		configs = append(configs, cfg)
-		if c.NextBlock() {
-			return c.ArgErr()
-		}
-	}
-	if configs != nil {
-		httpserver.GetConfig(c).AddListenerMiddleware(Configs(configs).NewListener)
-	}
 
-	return nil
+		if len(subnets) == 0 {
+			subnets = append(subnets,
+				&net.IPNet{Mask: make([]byte, 4), IP: make([]byte, 4)},
+				&net.IPNet{Mask: make([]byte, 16), IP: make([]byte, 16)},
+			)
+		}
+		if c.NextBlock() {
+			return nil, c.ArgErr()
+		}
+
+		for _, n := range subnets {
+			cfgs = append(cfgs, pp.Rule{Subnet: n, Timeout: t})
+		}
+	}
+	return cfgs, nil
 }
