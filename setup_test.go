@@ -68,6 +68,21 @@ func TestParseConfig(t *testing.T) {
 		exp{subnet: "::/0", timeout: 5 * time.Second},
 	)
 	check(
+		"no-timeout",
+		`proxyprotocol 0.0.0.0/0 {
+			timeout 0
+		}`,
+		exp{subnet: "0.0.0.0/0"},
+	)
+	check(
+		"no-timeout",
+		`proxyprotocol 0.0.0.0/0 {
+			timeout none
+		}`,
+		exp{subnet: "0.0.0.0/0"},
+	)
+
+	check(
 		"block-single",
 		`proxyprotocol 0.0.0.0/0 {
 			timeout 2s
