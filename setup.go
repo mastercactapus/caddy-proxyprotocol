@@ -4,9 +4,9 @@ import (
 	"net"
 	"time"
 
+	"github.com/caddyserver/caddy"
+	"github.com/caddyserver/caddy/caddyhttp/httpserver"
 	pp "github.com/mastercactapus/proxyprotocol"
-	"github.com/mholt/caddy"
-	"github.com/mholt/caddy/caddyhttp/httpserver"
 )
 
 type ppRules []pp.Rule
