@@ -3,8 +3,8 @@ package proxyprotocol
 import (
 	"os"
 
+	"github.com/caddyserver/caddy"
 	pp "github.com/mastercactapus/proxyprotocol"
-	"github.com/mholt/caddy"
 )
 
 // Listener adds PROXY protocol support to a caddy.Listener.
