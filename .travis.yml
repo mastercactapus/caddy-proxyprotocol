@@ -4,4 +4,7 @@ go:
   - "1.12"
   - tip
 
-script: env GO111MODULE=on go test
+env:
+  - GO111MODULE=on
+
+script: go test
